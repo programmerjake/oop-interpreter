@@ -100,6 +100,10 @@ struct Location
         os << L"line #" << line << " column #" << column;
         return os.str();
     }
+    friend wostream & operator <<(wostream & os, Location l)
+    {
+        return os << l.toString();
+    }
 };
 
 struct LocationRange
@@ -293,16 +297,172 @@ private:
     enum class TokenType
     {
         Eof,
-        NewLine,
+        LineStart,
+        LineEnd,
+
         Identifier,
+
+        AddressOf,
+        And,
+        AndAlso,
+        As,
+        Boolean,
+        ByRef,
+        Byte,
+        ByVal,
+        Case,
+        Catch,
+        CBool,
+        CByte,
+        CChar,
+        CDbl,
+        Char,
+        CInt,
+        Class,
+        CLng,
+        Const,
+        Continue,
+        ContinueDo,
+        ContinueFor,
+        CSByte,
+        CShort,
+        CSng,
+        CStr,
+        CType,
+        CUInt,
+        CULng,
+        CUShort,
+        Declare,
+        Delete,
+        Dim,
+        Do,
+        Double,
+        Each,
+        Else,
+        ElseIf,
+        End,
+        EndClass,
+        EndEnum,
+        EndFunction,
+        EndIf,
+        EndInterface,
+        EndNamespace,
+        EndOperator,
+        EndSelect,
+        EndStructure,
+        EndSub,
+        EndTry,
+        Enum,
+        Exit,
+        ExitDo,
+        ExitFor,
+        ExitFunction,
+        ExitSelect,
+        ExitSub,
+        False,
+        Finally,
+        For,
+        Friend,
+        Function,
+        Global,
+        If,
+        Implements,
+        Imports,
+        In,
+        Inherits,
+        Integer,
+        Interface,
+        Long,
+        Loop,
+        Me,
+        Mod,
+        MyBase,
+        MyClass,
+        Namespace,
+        Narrowing,
+        New,
+        Next,
+        Not,
+        NotInheritable,
+        NotOverridable,
+        Object,
+        Operator,
+        Optional,
+        Or,
+        OrElse,
+        Overloads,
+        Overridable,
+        Overrides,
+        ParamArray,
+        Pointer,
+        Private,
+        Protected,
+        Public,
+        Return,
+        SByte,
+        Select,
+        Shared,
+        Short,
+        Single,
+        Static,
+        Step,
+        String,
+        Structure,
+        Sub,
+        Then,
+        Throw,
+        To,
+        True,
+        Try,
+        TypeOf,
+        UInteger,
+        ULong,
+        UShort,
+        Using,
+        While,
+        Widening,
+        Xor,
+
+
+
         FloatValue,
         IntegerValue,
-        End,
-        Exit,
+        StringValue,
+
         Period,
         Ampersand,
-        If,
-        EndIf,
+        Plus,
+        Minus,
+        Star,
+        FSlash,
+        BSlash,
+        Caret,
+        Equal,
+        PlusEqual,
+        MinusEqual,
+        StarEqual,
+        FSlashEqual,
+        BSlashEqual,
+        CaretEqual,
+        LessThan,
+        GreaterThan,
+        AmpersandEqual,
+        RShiftEqual,
+        LShiftEqual,
+        GreaterEqual,
+        LessEqual,
+        RShift,
+        LShift,
+        NotEqual,
+        LParen,
+        RParen,
+        LBrace,
+        RBrace,
+        Comma,
+        Colon,
+        Semicolon,
+        ColonEqual,
+        Pound,
     };
     class Tokenizer
     {
@@ -364,6 +524,7 @@ private:
         LocationRange parseWhitespace();
         LocationRange parseNewLine();
         void parseNumber();
+        void parseString();
         TokenType token;
         LocationRange tokenLocation;
         wstring tokenValue;
@@ -384,9 +545,8 @@ private:
         void nextToken();
     public:
         Tokenizer(shared_ptr<ParserInput> parserInput)
-            : parserInput(parserInput), putbackChar(WEOF), token(TokenType::NewLine), putbackToken(TokenType::Eof)
+            : parserInput(parserInput), putbackChar(WEOF), token(TokenType::LineStart), tokenLocation(Location()), tokenValue(L""), putbackToken(TokenType::Eof)
         {
-            nextToken();
         }
         TokenType currentTokenType() const
         {

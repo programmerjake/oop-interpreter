@@ -11,140 +11,12 @@
 #include <sstream>
 #include <initializer_list>
 #include <unordered_map>
+#include "location.h"
+#include "tokentype.h"
+#include "astnode.h"
+#include "astnamespace.h"
 
 using namespace std;
-
-const size_t TabWidth = 4;
-
-struct Location
-{
-    size_t line, column;
-    Location()
-        : line(1), column(1)
-    {
-    }
-    Location(size_t line, size_t column)
-        : line(line), column(column)
-    {
-    }
-    enum class LocationState
-    {
-        Start,
-        GotReturn,
-    };
-    Location getNext(wint_t ch, LocationState & state) const
-    {
-        switch(ch)
-        {
-        case WEOF:
-            state = LocationState::Start;
-            return Location(line, column);
-        case L'\r':
-            state = LocationState::GotReturn;
-            return Location(line + 1, 1);
-        case L'\n':
-            if(state == LocationState::GotReturn)
-            {
-                state = LocationState::Start;
-                return Location(line, 1);
-            }
-            state = LocationState::Start;
-            return Location(line + 1, 1);
-        case L'\t':
-            state = LocationState::Start;
-            return Location(line, column + TabWidth - (column - 1) % TabWidth);
-        default:
-            state = LocationState::Start;
-            return Location(line, column + 1);
-        }
-    }
-    friend int compare(const Location & a, const Location & b)
-    {
-        if(a.line < b.line)
-            return -1;
-        if(a.line > b.line)
-            return 1;
-        if(a.column < b.column)
-            return -1;
-        if(a.column > b.column)
-            return 1;
-        return 0;
-    }
-    friend bool operator ==(const Location & a, const Location & b)
-    {
-        return a.line == b.line && a.column == b.column;
-    }
-    friend bool operator !=(const Location & a, const Location & b)
-    {
-        return a.line != b.line && a.column != b.column;
-    }
-    friend bool operator <(const Location & a, const Location & b)
-    {
-        return compare(a, b) < 0;
-    }
-    friend bool operator <=(const Location & a, const Location & b)
-    {
-        return compare(a, b) <= 0;
-    }
-    friend bool operator >(const Location & a, const Location & b)
-    {
-        return compare(a, b) > 0;
-    }
-    friend bool operator >=(const Location & a, const Location & b)
-    {
-        return compare(a, b) >= 0;
-    }
-    wstring toString() const
-    {
-        wostringstream os;
-        os << L"line #" << line << " column #" << column;
-        return os.str();
-    }
-    friend wostream & operator <<(wostream & os, Location l)
-    {
-        return os << l.toString();
-    }
-};
-
-struct LocationRange
-{
-    Location start;
-    Location end;
-    LocationRange(Location loc = Location())
-        : start(loc), end(loc)
-    {
-    }
-    LocationRange(Location start, Location end)
-        : start(min(start, end)), end(max(start, end))
-    {
-    }
-    const LocationRange & operator =(Location loc)
-    {
-        start = loc;
-        end = loc;
-        return *this;
-    }
-    friend LocationRange operator +(LocationRange a, LocationRange b)
-    {
-        return LocationRange(min(a.start, b.start), max(a.end, b.end));
-    }
-    const LocationRange & operator +=(LocationRange b)
-    {
-        start = min(start, b.start);
-        end = max(end, b.end);
-        return *this;
-    }
-    const LocationRange & advance(wint_t ch, Location::LocationState & state)
-    {
-        start = end;
-        end = end.getNext(ch, state);
-        return *this;
-    }
-    wstring toString() const
-    {
-        return start.toString();
-    }
-};
 
 class ParserInput
 {
@@ -263,8 +135,7 @@ private:
     {
         throw ParseError(msg, location);
     }
-    template <typename T>
-    static void expected(initializer_list<T> expectedList, LocationRange location)
+    static void expected(vector<wstring> expectedList, LocationRange location)
     {
         wstring msg = L"expected : ";
         if(expectedList.size() == 1)
@@ -294,176 +165,14 @@ private:
     {
         error(L"unexpected : " + msg, location);
     }
-    enum class TokenType
+    static void unexpected(Token token)
     {
-        Eof,
-        LineStart,
-        LineEnd,
-
-        Identifier,
-
-        AddressOf,
-        And,
-        AndAlso,
-        As,
-        Boolean,
-        ByRef,
-        Byte,
-        ByVal,
-        Case,
-        Catch,
-        CBool,
-        CByte,
-        CChar,
-        CDbl,
-        Char,
-        CInt,
-        Class,
-        CLng,
-        Const,
-        Continue,
-        ContinueDo,
-        ContinueFor,
-        CSByte,
-        CShort,
-        CSng,
-        CStr,
-        CType,
-        CUInt,
-        CULng,
-        CUShort,
-        Declare,
-        Delete,
-        Dim,
-        Do,
-        Double,
-        Each,
-        Else,
-        ElseIf,
-        End,
-        EndClass,
-        EndEnum,
-        EndFunction,
-        EndIf,
-        EndInterface,
-        EndNamespace,
-        EndOperator,
-        EndSelect,
-        EndStructure,
-        EndSub,
-        EndTry,
-        Enum,
-        Exit,
-        ExitDo,
-        ExitFor,
-        ExitFunction,
-        ExitSelect,
-        ExitSub,
-        False,
-        Finally,
-        For,
-        Friend,
-        Function,
-        Global,
-        If,
-        Implements,
-        Imports,
-        In,
-        Inherits,
-        Integer,
-        Interface,
-        Long,
-        Loop,
-        Me,
-        Mod,
-        MyBase,
-        MyClass,
-        Namespace,
-        Narrowing,
-        New,
-        Next,
-        Not,
-        NotInheritable,
-        NotOverridable,
-        Object,
-        Operator,
-        Optional,
-        Or,
-        OrElse,
-        Overloads,
-        Overridable,
-        Overrides,
-        ParamArray,
-        Pointer,
-        Private,
-        Protected,
-        Public,
-        Return,
-        SByte,
-        Select,
-        Shared,
-        Short,
-        Single,
-        Static,
-        Step,
-        String,
-        Structure,
-        Sub,
-        Then,
-        Throw,
-        To,
-        True,
-        Try,
-        TypeOf,
-        UInteger,
-        ULong,
-        UShort,
-        Using,
-        While,
-        Widening,
-        Xor,
-
-
-
-        FloatValue,
-        IntegerValue,
-        StringValue,
-
-        Period,
-        Ampersand,
-        Plus,
-        Minus,
-        Star,
-        FSlash,
-        BSlash,
-        Caret,
-        Equal,
-        PlusEqual,
-        MinusEqual,
-        StarEqual,
-        FSlashEqual,
-        BSlashEqual,
-        CaretEqual,
-        LessThan,
-        GreaterThan,
-        AmpersandEqual,
-        RShiftEqual,
-        LShiftEqual,
-        GreaterEqual,
-        LessEqual,
-        RShift,
-        LShift,
-        NotEqual,
-        LParen,
-        RParen,
-        LBrace,
-        RBrace,
-        Comma,
-        Colon,
-        Semicolon,
-        ColonEqual,
-        Pound,
-    };
+        unexpected(token.toString(), token.location);
+    }
+    static void invalidWith(Token token, wstring codeStructure)
+    {
+        error(token.toString() + L" is invalid with " + codeStructure, token.location);
+    }
     class Tokenizer
     {
     private:
@@ -604,6 +313,16 @@ private:
             return putbackTokenValue;
         return tokenizer.currentTokenValue();
     }
+    Token curToken() const
+    {
+        if(putbackTokenType != TokenType::Eof)
+            return Token(putbackTokenType, putbackTokenValue, putbackTokenLocation);
+        return Token(tokenizer.currentTokenType(), tokenizer.currentTokenValue(), tokenizer.currentTokenLocation());
+    }
+    wstring getTokenAsPrintableString() const
+    {
+        return curToken().toString();
+    }
     TokenType nextTokenType()
     {
         if(putbackTokenType != TokenType::Eof)
@@ -631,14 +350,69 @@ private:
         }
         return tokenizer.nextTokenValue();
     }
+    Token nextToken()
+    {
+        if(putbackTokenType != TokenType::Eof)
+            putbackTokenType = TokenType::Eof;
+        else
+            tokenizer.nextTokenType();
+        return Token(tokenizer.currentTokenType(), tokenizer.currentTokenValue(), tokenizer.currentTokenLocation());
+    }
     void putback(TokenType tokenType, wstring tokenValue, LocationRange tokenLocation)
     {
         putbackTokenType = tokenType;
         putbackTokenValue = tokenValue;
         putbackTokenLocation = tokenLocation;
     }
+    LocationRange getTokenOrError(initializer_list<TokenType> tokenTypes)
+    {
+        bool isValid = false;
+        for(TokenType t : tokenTypes)
+        {
+            if(t == curTokenType())
+            {
+                isValid = true;
+                break;
+            }
+        }
+        if(!isValid)
+        {
+            vector<wstring> tokenStrings;
+            tokenStrings.reserve(tokenTypes.size());
+            for(TokenType t : tokenTypes)
+            {
+                tokenStrings.push_back(::getTokenAsPrintableString(t));
+            }
+            expected(tokenStrings, curTokenLocation());
+        }
+        LocationRange location = curTokenLocation();
+        nextTokenType();
+        return location;
+    }
+    void validateModifiers(vector<Token> modifiers, initializer_list<TokenType> validModifiers, wstring codeStructure)
+    {
+        for(Token searchFor : modifiers)
+        {
+            bool found = false;
+            for(TokenType searchIn : validModifiers)
+            {
+                if(searchIn == searchFor.type)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+            {
+                invalidWith(searchFor, codeStructure);
+            }
+        }
+    }
+    shared_ptr<ASTNode> parseNamespace(vector<Token> modifiers);
+    LocationRange parseBlockInternal(vector<shared_ptr<ASTNode>> & nodes, unordered_map<wstring, shared_ptr<ASTNode>> & variables, vector<shared_ptr<ASTNamespace>> & imports);
+    shared_ptr<ASTNode> parseBlock();
 public:
-    void run();
+    shared_ptr<ASTNode> run();
 };
 
 #endif // PARSER_H_INCLUDED

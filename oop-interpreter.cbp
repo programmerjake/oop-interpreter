@@ -33,10 +33,17 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="astcodeblock.h" />
+		<Unit filename="astnamespace.h" />
+		<Unit filename="astnode.h" />
+		<Unit filename="asttype.h" />
+		<Unit filename="location.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="parser.cpp" />
 		<Unit filename="parser.h" />
 		<Unit filename="test.txt" />
+		<Unit filename="tokentype.cpp" />
+		<Unit filename="tokentype.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

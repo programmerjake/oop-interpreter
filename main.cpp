@@ -7,6 +7,8 @@ using namespace std;
 int main()
 {
     Parser parser(make_shared<IStreamParserInput>(make_shared<wifstream>("test.txt")));
-    parser.run();
+    shared_ptr<ASTNode> ast = parser.run();
+    if(ast)
+        ast->dump(wcout);
     return 0;
 }

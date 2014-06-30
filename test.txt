@@ -1,18 +1,18 @@
-Namespace Test
-    Class TestClass
-        Public Operator New()
-        End Operator
-        Public Function test() As Boolean
-            Return True
-        End Function
-    End Class
+Friend Namespace Test
+    'Class TestClass
+        'Public Operator New()
+        'End Operator
+        'Public Function test() As Boolean
+            'Return True
+        'End Function
+    'End Class
 End Namespace
 
-For i As Integer = 0 To 23 Step 2
-    Dim a As Pointer To TestClass = New TestClass()
-    If a.test() OrElse (#a).test() Then
-        Exit For
-    Else
-        Continue For
-    End If
-Next
+'For i As Integer = 0 To 23 Step 2
+    'Dim a As Pointer To TestClass = New TestClass()
+    'If a.test() OrElse (#a).test() Then
+        'Exit For
+    'Else
+        'Continue For
+    'End If
+'Next

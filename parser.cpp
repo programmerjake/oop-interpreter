@@ -1,5 +1,8 @@
 #include "parser.h"
 #include <iostream>
+#include <cassert>
+#include "astcodeblock.h"
+#include "astnamespace.h"
 
 using namespace std;
 
@@ -184,7 +187,7 @@ void Parser::Tokenizer::parseNumber()
             gotSign = true;
         }
         if(!iswdigit(curChar()))
-            expected((gotSign ? initializer_list<const wchar_t *>{L"digit"} : initializer_list<const wchar_t *>{L"digit", L"+", L"-"}), curLocation());
+            expected((gotSign ? initializer_list<wstring>{L"digit"} : initializer_list<wstring>{L"digit", L"+", L"-"}), curLocation());
         while(iswdigit(curChar()))
         {
             tokenValue += curChar();
@@ -225,13 +228,14 @@ void Parser::Tokenizer::parseString()
     }
 }
 
-unordered_map<wstring, Parser::TokenType> Parser::Tokenizer::makeKeywordMap()
+unordered_map<wstring, TokenType> Parser::Tokenizer::makeKeywordMap()
 {
     unordered_map<wstring, TokenType> retval;
     retval[L"AddressOf"] = TokenType::AddressOf;
     retval[L"And"] = TokenType::And;
     retval[L"AndAlso"] = TokenType::AndAlso;
     retval[L"As"] = TokenType::As;
+    retval[L"Block"] = TokenType::Block;
     retval[L"Boolean"] = TokenType::Boolean;
     retval[L"ByRef"] = TokenType::ByRef;
     retval[L"Byte"] = TokenType::Byte;
@@ -269,6 +273,8 @@ unordered_map<wstring, Parser::TokenType> Parser::Tokenizer::makeKeywordMap()
     retval[L"Else"] = TokenType::Else;
     retval[L"ElseIf"] = TokenType::ElseIf;
     retval[L"End"] = TokenType::End;
+    retval[L"EndBlock"] = TokenType::EndBlock;
+    retval[L"End Block"] = TokenType::EndBlock;
     retval[L"EndClass"] = TokenType::EndClass;
     retval[L"End Class"] = TokenType::EndClass;
     retval[L"EndEnum"] = TokenType::EndEnum;
@@ -299,6 +305,8 @@ unordered_map<wstring, Parser::TokenType> Parser::Tokenizer::makeKeywordMap()
     retval[L"Exit For"] = TokenType::ExitFor;
     retval[L"ExitFunction"] = TokenType::ExitFunction;
     retval[L"Exit Function"] = TokenType::ExitFunction;
+    retval[L"ExitOperator"] = TokenType::ExitOperator;
+    retval[L"Exit Operator"] = TokenType::ExitOperator;
     retval[L"ExitSelect"] = TokenType::ExitSelect;
     retval[L"Exit Select"] = TokenType::ExitSelect;
     retval[L"ExitSub"] = TokenType::ExitSub;
@@ -632,24 +640,125 @@ void Parser::Tokenizer::nextToken()
     }
 }
 
-void Parser::run()
+shared_ptr<ASTNode> Parser::parseNamespace(vector<Token> modifiers)
+{
+    validateModifiers(modifiers, {}, getTokenAsPrintableString());
+    LocationRange location = getTokenOrError({TokenType::Namespace});
+    if(curTokenType() != TokenType::Identifier)
+        expected({::getTokenAsPrintableString(TokenType::Identifier)}, curTokenLocation());
+    wstring name = curTokenValue();
+    location += curTokenLocation();
+    nextTokenType();
+    vector<shared_ptr<ASTNode>> nodes;
+    unordered_map<wstring, shared_ptr<ASTNode>> variables;
+    vector<shared_ptr<ASTNamespace>> imports;
+    location += parseBlockInternal(nodes, variables, imports);
+    location += getTokenOrError({TokenType::EndNamespace});
+    shared_ptr<ASTNode> retval = make_shared<ASTNamespace>(location, name, std::move(imports), std::move(variables), std::move(modifiers), std::move(nodes));
+    for(shared_ptr<ASTNode> node : retval->nodes)
+    {
+        node->setLexicalParent(retval);
+    }
+    return retval;
+}
+
+LocationRange Parser::parseBlockInternal(vector<shared_ptr<ASTNode>> & nodes, unordered_map<wstring, shared_ptr<ASTNode>> & variables, vector<shared_ptr<ASTNamespace>> & imports)
+{
+    LocationRange location = curTokenLocation();
+    vector<Token> modifiers;
+    for(;;)
+    {
+        switch(curTokenType())
+        {
+        case TokenType::Friend:
+        case TokenType::Narrowing:
+        case TokenType::NotInheritable:
+        case TokenType::NotOverridable:
+        case TokenType::Optional:
+        case TokenType::Overloads:
+        case TokenType::Overridable:
+        case TokenType::Overrides:
+        case TokenType::Private:
+        case TokenType::Protected:
+        case TokenType::Public:
+        case TokenType::Shared:
+        case TokenType::Widening:
+            modifiers.push_back(curToken());
+            location += curTokenLocation();
+            nextTokenType();
+            break;
+        case TokenType::LineStart:
+        case TokenType::LineEnd:
+            location += curTokenLocation();
+            nextTokenType();
+            break;
+        case TokenType::Block:
+        {
+            validateModifiers(modifiers, {}, ::getTokenAsPrintableString(curTokenType()));
+            location += curTokenLocation();
+            nextTokenType();
+            nodes.push_back(parseBlock());
+            modifiers.clear();
+            location += nodes.back()->getLocation() + getTokenOrError({TokenType::EndBlock});
+            break;
+        }
+        case TokenType::Namespace:
+        {
+            nodes.push_back(parseNamespace(modifiers));
+            modifiers.clear();
+            location += nodes.back()->getLocation();
+            break;
+        }
+        case TokenType::EndBlock:
+        case TokenType::EndClass:
+        case TokenType::EndEnum:
+        case TokenType::EndFunction:
+        case TokenType::EndIf:
+        case TokenType::EndInterface:
+        case TokenType::EndNamespace:
+        case TokenType::EndOperator:
+        case TokenType::EndSelect:
+        case TokenType::Eof:
+        {
+            validateModifiers(modifiers, {}, getTokenAsPrintableString());
+            return location;
+        }
+        default:
+            unexpected(curToken());
+        }
+    }
+}
+
+shared_ptr<ASTNode> Parser::parseBlock()
+{
+    vector<shared_ptr<ASTNode>> nodes;
+    unordered_map<wstring, shared_ptr<ASTNode>> variables;
+    vector<shared_ptr<ASTNamespace>> imports;
+    LocationRange location = parseBlockInternal(nodes, variables, imports);
+    shared_ptr<ASTNode> retval = make_shared<ASTBlock>(location, std::move(imports), std::move(variables), std::move(nodes));
+    for(shared_ptr<ASTNode> node : retval->nodes)
+    {
+        node->setLexicalParent(retval);
+    }
+    return retval;
+}
+
+shared_ptr<ASTNode> Parser::run()
 {
     try
     {
-        while(curTokenType() != TokenType::Eof)
-        {
-            wcout << curTokenLocation().start << L" to " << curTokenLocation().end << L" : ";
-            if(curTokenType() == TokenType::LineStart)
-                wcout << L"<Line Start>" << endl;
-            else if(curTokenType() == TokenType::LineEnd)
-                wcout << L"<Line End>" << endl;
-            else
-                wcout << curTokenValue() << endl;
-            nextTokenType();
-        }
+        vector<shared_ptr<ASTNode>> nodes;
+        unordered_map<wstring, shared_ptr<ASTNode>> variables;
+        vector<shared_ptr<ASTNamespace>> imports;
+        LocationRange location = parseBlockInternal(nodes, variables, imports);
+        shared_ptr<ASTNode> retval = make_shared<ASTGlobalBlock>(location, std::move(imports), std::move(variables), std::move(nodes));
+        if(curTokenType() != TokenType::Eof)
+            unexpected(curToken());
+        return retval;
     }
     catch(Exception & e)
     {
         wcout << L"\nError : " << e.what() << endl;
+        return nullptr;
     }
 }

@@ -409,6 +409,7 @@ private:
         }
     }
     shared_ptr<ASTNode> parseNamespace(vector<Token> modifiers);
+    shared_ptr<ASTNode> parseClass(vector<Token> modifiers);
     LocationRange parseBlockInternal(vector<shared_ptr<ASTNode>> & nodes, unordered_map<wstring, shared_ptr<ASTNode>> & variables, vector<shared_ptr<ASTNamespace>> & imports);
     shared_ptr<ASTNode> parseBlock();
 public:

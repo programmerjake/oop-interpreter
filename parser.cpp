@@ -662,6 +662,48 @@ shared_ptr<ASTNode> Parser::parseNamespace(vector<Token> modifiers)
     return retval;
 }
 
+shared_ptr<ASTNode> Parser::parseClass(vector<Token> modifiers)
+{
+    validateModifiers(modifiers, {}, getTokenAsPrintableString());
+    LocationRange location = getTokenOrError({TokenType::Class});
+    if(curTokenType() != TokenType::Identifier)
+        expected({::getTokenAsPrintableString(TokenType::Identifier)}, curTokenLocation());
+    wstring name = curTokenValue();
+    location += curTokenLocation();
+    wstring inherits = L"";
+    if(nextTokenType() == TokenType::Inherits)
+    {
+        location += curTokenLocation();
+        nextTokenType();
+        if(curTokenType() != TokenType::Identifier && curTokenType() != TokenType::Object)
+            expected({::getTokenAsPrintableString(TokenType::Identifier)}, curTokenLocation());
+        inherits = curTokenValue();
+        location += curTokenLocation();
+        nextTokenType();
+    }
+    vector<wstring> implements;
+    if(curTokenType() == TokenType::Implements)
+    {
+        do
+        {
+            location += curTokenLocation();
+            assert(false);
+        }
+        while(nextTokenType() == TokenType::Comma);
+    }
+    vector<shared_ptr<ASTNode>> nodes;
+    unordered_map<wstring, shared_ptr<ASTNode>> variables;
+    vector<shared_ptr<ASTNamespace>> imports;
+    location += parseBlockInternal(nodes, variables, imports);
+    location += getTokenOrError({TokenType::EndClass});
+    shared_ptr<ASTNode> retval = make_shared<ASTClass>(location, name, inherits, implements, std::move(imports), std::move(variables), std::move(modifiers), std::move(nodes));
+    for(shared_ptr<ASTNode> node : retval->nodes)
+    {
+        node->setLexicalParent(retval);
+    }
+    return retval;
+}
+
 LocationRange Parser::parseBlockInternal(vector<shared_ptr<ASTNode>> & nodes, unordered_map<wstring, shared_ptr<ASTNode>> & variables, vector<shared_ptr<ASTNamespace>> & imports)
 {
     LocationRange location = curTokenLocation();

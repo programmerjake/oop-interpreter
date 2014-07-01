@@ -33,6 +33,7 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="astclass.h" />
 		<Unit filename="astcodeblock.h" />
 		<Unit filename="astnamespace.h" />
 		<Unit filename="astnode.h" />

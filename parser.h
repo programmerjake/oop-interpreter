@@ -15,6 +15,7 @@
 #include "tokentype.h"
 #include "astnode.h"
 #include "astnamespace.h"
+#include "astperiod.h"
 
 using namespace std;
 
@@ -160,6 +161,16 @@ private:
             }
         }
         error(msg, location);
+    }
+    static void expected(vector<TokenType> expectedList, LocationRange location)
+    {
+        vector<wstring> stringVector;
+        stringVector.reserve(expectedList.size());
+        for(TokenType t : expectedList)
+        {
+            stringVector.push_back(::getTokenAsPrintableString(t));
+        }
+        expected(stringVector, location);
     }
     static void unexpected(wstring msg, LocationRange location)
     {
@@ -408,6 +419,7 @@ private:
             }
         }
     }
+    shared_ptr<ASTPeriod> parseNamePath();
     shared_ptr<ASTNode> parseNamespace(vector<Token> modifiers);
     shared_ptr<ASTNode> parseClass(vector<Token> modifiers);
     LocationRange parseBlockInternal(vector<shared_ptr<ASTNode>> & nodes, unordered_map<wstring, shared_ptr<ASTNode>> & variables, vector<shared_ptr<ASTNamespace>> & imports);

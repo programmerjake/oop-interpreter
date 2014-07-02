@@ -44,7 +44,11 @@ public:
         return location;
     }
     virtual shared_ptr<ASTNode> dup() const = 0;
-    virtual void dump(wostream & os, size_t indentLevel = 0) const = 0;
+    virtual void dump(wostream & os, size_t indentLevel) const = 0;
+    void dump(wostream & os) const
+    {
+        return dump(os, 0);
+    }
     static void indent(wostream & os, size_t indentLevel)
     {
         for(size_t i = 0; i < indentLevel * TabWidth; i++)

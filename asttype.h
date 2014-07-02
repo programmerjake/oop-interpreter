@@ -6,16 +6,16 @@
 class ASTType : public ASTNode
 {
 public:
-    ASTType(LocationRange location, weak_ptr<ASTNode> lexicalParent, vector<shared_ptr<ASTNode>> nodes)
-        : ASTNode(location, lexicalParent, nodes)
+    ASTType(LocationRange location, vector<shared_ptr<ASTNode>> nodes)
+        : ASTNode(location, nodes)
     {
     }
-    ASTType(LocationRange location, weak_ptr<ASTNode> lexicalParent, initializer_list<shared_ptr<ASTNode>> il)
-        : ASTNode(location, lexicalParent, nodes)
+    ASTType(LocationRange location, initializer_list<shared_ptr<ASTNode>> il)
+        : ASTNode(location, nodes)
     {
     }
-    ASTType(LocationRange location, weak_ptr<ASTNode> lexicalParent)
-        : ASTNode(location, lexicalParent)
+    ASTType(LocationRange location)
+        : ASTNode(location)
     {
     }
 };

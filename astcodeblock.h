@@ -23,7 +23,7 @@ public:
     {
     }
     ASTCodeBlock(LocationRange location, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables)
-        : ASTNode(location, nodes), variables(variables), imports(imports)
+        : ASTNode(location), variables(variables), imports(imports)
     {
     }
 };

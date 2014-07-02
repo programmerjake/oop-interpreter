@@ -3,24 +3,25 @@
 
 #include "astcodeblock.h"
 #include "tokentype.h"
+#include "astperiod.h"
 
 class ASTClass final : public ASTCodeBlock
 {
 protected:
     vector<Token> modifiers;
-    wstring name;
-    wstring inherits;
-    vector<wstring> implements;
+    shared_ptr<ASTPeriod> name;
+    shared_ptr<ASTPeriod> inherits;
+    vector<shared_ptr<ASTPeriod>> implements;
 public:
-    ASTClass(LocationRange location, wstring name, wstring inherits, vector<wstring> implements, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables, vector<Token> modifiers, vector<shared_ptr<ASTNode>> nodes)
+    ASTClass(LocationRange location, shared_ptr<ASTPeriod> name, shared_ptr<ASTPeriod> inherits, vector<shared_ptr<ASTPeriod>> implements, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables, vector<Token> modifiers, vector<shared_ptr<ASTNode>> nodes)
         : ASTCodeBlock(location, imports, variables, nodes), modifiers(modifiers), name(name), inherits(inherits), implements(implements)
     {
     }
-    ASTClass(LocationRange location, wstring name, wstring inherits, vector<wstring> implements, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables, vector<Token> modifiers, initializer_list<shared_ptr<ASTNode>> il)
+    ASTClass(LocationRange location, shared_ptr<ASTPeriod> name, shared_ptr<ASTPeriod> inherits, vector<shared_ptr<ASTPeriod>> implements, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables, vector<Token> modifiers, initializer_list<shared_ptr<ASTNode>> il)
         : ASTCodeBlock(location, imports, variables, nodes), modifiers(modifiers), name(name), inherits(inherits), implements(implements)
     {
     }
-    ASTClass(LocationRange location, wstring name, wstring inherits, vector<wstring> implements, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables, vector<Token> modifiers)
+    ASTClass(LocationRange location, shared_ptr<ASTPeriod> name, shared_ptr<ASTPeriod> inherits, vector<shared_ptr<ASTPeriod>> implements, vector<shared_ptr<ASTNamespace>> imports, unordered_map<wstring, shared_ptr<ASTNode>> variables, vector<Token> modifiers)
         : ASTCodeBlock(location, imports, variables), modifiers(modifiers), name(name), inherits(inherits), implements(implements)
     {
     }
@@ -35,16 +36,21 @@ public:
         {
             os << t.toSourceString() << L" ";
         }
-        os << getTokenAsPrintableString(TokenType::Class) << L" " << name;
-        if(inherits != "")
-            os << getTokenAsPrintableString(TokenType::Inherits) << L" " << inherits;
+        os << getTokenAsPrintableString(TokenType::Class) << L" ";
+        name->dump(os, indentLevel + 1);
+        if(inherits != nullptr)
+        {
+            os << L" " << getTokenAsPrintableString(TokenType::Inherits) << L" ";
+            inherits->dump(os, indentLevel + 1);
+        }
         if(implements.size() > 0)
         {
-            os << getTokenAsPrintableString(TokenType::Implements);
+            os << L" " << getTokenAsPrintableString(TokenType::Implements);
             wstring seperator = L" ";
-            for(wstring interface : implements)
+            for(shared_ptr<ASTPeriod> interface : implements)
             {
-                os << seperator << interface;
+                os << seperator;
+                interface->dump(os, indentLevel + 1);
                 seperator = L", ";
             }
         }

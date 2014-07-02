@@ -3,6 +3,8 @@
 #include <cassert>
 #include "astcodeblock.h"
 #include "astnamespace.h"
+#include "astidentifier.h"
+#include "astclass.h"
 
 using namespace std;
 
@@ -666,28 +668,25 @@ shared_ptr<ASTNode> Parser::parseClass(vector<Token> modifiers)
 {
     validateModifiers(modifiers, {}, getTokenAsPrintableString());
     LocationRange location = getTokenOrError({TokenType::Class});
-    if(curTokenType() != TokenType::Identifier)
-        expected({::getTokenAsPrintableString(TokenType::Identifier)}, curTokenLocation());
-    wstring name = curTokenValue();
-    location += curTokenLocation();
-    wstring inherits = L"";
-    if(nextTokenType() == TokenType::Inherits)
+    shared_ptr<ASTPeriod> name = parseNamePath();
+    location += name->getLocation();
+    shared_ptr<ASTPeriod> inherits = nullptr;
+    if(curTokenType() == TokenType::Inherits)
     {
         location += curTokenLocation();
         nextTokenType();
-        if(curTokenType() != TokenType::Identifier && curTokenType() != TokenType::Object)
-            expected({::getTokenAsPrintableString(TokenType::Identifier)}, curTokenLocation());
-        inherits = curTokenValue();
-        location += curTokenLocation();
-        nextTokenType();
+        inherits = parseNamePath();
+        location += inherits->getLocation();
     }
-    vector<wstring> implements;
+    vector<shared_ptr<ASTPeriod>> implements;
     if(curTokenType() == TokenType::Implements)
     {
         do
         {
             location += curTokenLocation();
-            assert(false);
+            nextTokenType();
+            implements.push_back(parseNamePath());
+            location += implements.back()->getLocation();
         }
         while(nextTokenType() == TokenType::Comma);
     }
@@ -751,6 +750,13 @@ LocationRange Parser::parseBlockInternal(vector<shared_ptr<ASTNode>> & nodes, un
             location += nodes.back()->getLocation();
             break;
         }
+        case TokenType::Class:
+        {
+            nodes.push_back(parseClass(modifiers));
+            modifiers.clear();
+            location += nodes.back()->getLocation();
+            break;
+        }
         case TokenType::EndBlock:
         case TokenType::EndClass:
         case TokenType::EndEnum:
@@ -783,6 +789,50 @@ shared_ptr<ASTNode> Parser::parseBlock()
         node->setLexicalParent(retval);
     }
     return retval;
+}
+
+shared_ptr<ASTPeriod> Parser::parseNamePath()
+{
+    vector<shared_ptr<ASTNode>> nodes;
+    bool startsWithPeriod = false;
+    LocationRange location = curTokenLocation();
+    if(curTokenType() == TokenType::Period)
+    {
+        startsWithPeriod = true;
+        nextTokenType();
+    }
+    if(curTokenType() == TokenType::Global || curTokenType() == TokenType::Identifier || curTokenType() == TokenType::Object || curTokenType() == TokenType::Me || curTokenType() == TokenType::MyBase || curTokenType() == TokenType::MyClass)
+    {
+        if(curTokenType() == TokenType::Identifier)
+            nodes.push_back(make_shared<ASTIdentifier>(curToken()));
+        else if(curTokenType() == TokenType::Object)
+            nodes.push_back(make_shared<ASTObjectIdentifier>(location));
+        else
+            nodes.push_back(make_shared<ASTSpecialIdentifier>(curTokenLocation(), curTokenType()));
+        location += curTokenLocation();
+        nextTokenType();
+        while(curTokenType() == TokenType::Period)
+        {
+            location += curTokenLocation();
+            nextTokenType();
+            if(curTokenType() != TokenType::Identifier && (curTokenType() != TokenType::Object || nodes.size() != 1 || dynamic_pointer_cast<ASTSpecialIdentifier>(nodes[0]) == nullptr))
+            {
+                if(nodes.size() == 1 && dynamic_pointer_cast<ASTSpecialIdentifier>(nodes[0]) != nullptr)
+                    expected({TokenType::Object, TokenType::Identifier}, curTokenLocation());
+                else
+                    expected({TokenType::Identifier}, curTokenLocation());
+            }
+            if(curTokenType() == TokenType::Object)
+                nodes.push_back(make_shared<ASTObjectIdentifier>(curTokenLocation()));
+            else
+                nodes.push_back(make_shared<ASTIdentifier>(curToken()));
+            location += curTokenLocation();
+            nextTokenType();
+        }
+    }
+    else if(!startsWithPeriod)
+        expected({TokenType::Global, TokenType::Object, TokenType::Identifier, TokenType::Period, TokenType::Me, TokenType::MyBase, TokenType::MyClass}, curTokenLocation());
+    return make_shared<ASTPeriod>(location, startsWithPeriod, nodes);
 }
 
 shared_ptr<ASTNode> Parser::run()

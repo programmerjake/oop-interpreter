@@ -1,11 +1,11 @@
-Friend Namespace Test
-    'Class TestClass
+Namespace Test
+    Class TestClass Inherits Object Implements Global.Test.MyInterface
         'Public Operator New()
         'End Operator
         'Public Function test() As Boolean
             'Return True
         'End Function
-    'End Class
+    End Class
 End Namespace
 
 'For i As Integer = 0 To 23 Step 2

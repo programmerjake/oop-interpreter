@@ -98,6 +98,7 @@ enum class TokenType
     New,
     Next,
     Not,
+    Nothing,
     NotInheritable,
     NotOverridable,
     Object,

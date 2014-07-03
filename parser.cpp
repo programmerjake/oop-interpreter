@@ -337,6 +337,7 @@ unordered_map<wstring, TokenType> Parser::Tokenizer::makeKeywordMap()
     retval[L"New"] = TokenType::New;
     retval[L"Next"] = TokenType::Next;
     retval[L"Not"] = TokenType::Not;
+    retval[L"Nothing"] = TokenType::Nothing;
     retval[L"NotInheritable"] = TokenType::NotInheritable;
     retval[L"NotOverridable"] = TokenType::NotOverridable;
     retval[L"Object"] = TokenType::Object;

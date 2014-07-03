@@ -42,6 +42,9 @@
 		<Unit filename="astperiod.cpp" />
 		<Unit filename="astperiod.h" />
 		<Unit filename="asttype.h" />
+		<Unit filename="asttypeconst.h" />
+		<Unit filename="asttypepointer.h" />
+		<Unit filename="asttypespecial.h" />
 		<Unit filename="location.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="parser.cpp" />

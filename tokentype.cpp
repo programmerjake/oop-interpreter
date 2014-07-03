@@ -181,6 +181,8 @@ wstring getTokenAsPrintableString(TokenType token)
         return L"Next";
     case TokenType::Not:
         return L"Not";
+    case TokenType::Nothing:
+        return L"Nothing";
     case TokenType::NotInheritable:
         return L"NotInheritable";
     case TokenType::NotOverridable:
